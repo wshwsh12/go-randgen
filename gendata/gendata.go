@@ -203,6 +203,7 @@ func wrapInDml(pk string, data []string) string {
 const (
 	fInt = iota
 	fChar
+	fHybrid
 )
 
 var fClass = map[string]int{
@@ -216,6 +217,7 @@ var fClass = map[string]int{
 	"tinyint":   fInt,
 	"mediumint": fInt,
 	"bigint":    fInt,
+	"enum":      fHybrid,
 }
 
 type Keyfun map[string]func() (string, error)
@@ -245,6 +247,7 @@ var field_invariant = ""
 func NewKeyfun(tables []*tableStmt, fields []*fieldExec) Keyfun {
 	fieldsInt := make([]*fieldExec, 0)
 	fieldsChar := make([]*fieldExec, 0)
+	fieldsHybrid := make([]*fieldExec, 0)
 
 	for _, fieldExec := range fields {
 		if class, ok := fClass[fieldExec.dType()]; ok {
@@ -253,6 +256,8 @@ func NewKeyfun(tables []*tableStmt, fields []*fieldExec) Keyfun {
 				fieldsInt = append(fieldsInt, fieldExec)
 			case fChar:
 				fieldsChar = append(fieldsChar, fieldExec)
+			case fHybrid:
+				fieldsHybrid = append(fieldsHybrid, fieldExec)
 			}
 		}
 	}
@@ -312,6 +317,12 @@ func NewKeyfun(tables []*tableStmt, fields []*fieldExec) Keyfun {
 				return "", errors.New("there is no char fields")
 			}
 			return joinFields(fields), nil
+		},
+		"_field_hybrid": func() (s string, e error) {
+			if len(fieldsHybrid) == 0 {
+				return "", errors.New("there is no hybrid fields")
+			}
+			return joinFields(fieldsHybrid), nil
 		},
 	}
 
